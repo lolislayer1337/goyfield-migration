@@ -1,0 +1,6 @@
+.idea
+node_modules
+generated
+
+.env
+!.env.example

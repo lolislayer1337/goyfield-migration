@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ESNext"],
+    "outDir": "./dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+
+    "strict": true,
+    "noImplicitReturns": true,
+
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+
+    "skipLibCheck": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@generated/*": ["generated/*"],
+      "@static/*": ["static/*"],
+      "@scripts/*": ["src/scripts/*"],
+      "@maps/*": ["src/maps/*"],
+      "@utils/*": ["src/utils/*"],
+      "@/*": ["src/*"]
+    }
+  }
+}

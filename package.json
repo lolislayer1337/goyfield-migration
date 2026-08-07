@@ -1,0 +1,29 @@
+{
+  "name": "goyfield-migration",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --exec tsx src/main.ts",
+    "start": "tsx src/main.ts",
+    "prisma:v2:generate": "prisma generate --schema prisma/v2/schema.prisma",
+    "prisma:v1:pg:generate": "prisma generate --schema prisma/v1/postgres/schema.prisma",
+    "prisma:v1:sqlite:generate": "prisma generate --schema prisma/v1/sqlite/schema.prisma"
+  },
+  "keywords": [],
+  "author": "lolislayer1337",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@prisma/client": "5.19.0",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.23.10",
+    "nodemon": "^3.1.14",
+    "prisma": "5.19.0",
+    "@types/node": "^26.0.0"
+  }
+}
