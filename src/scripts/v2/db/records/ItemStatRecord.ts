@@ -1,6 +1,7 @@
 import { charNameMap, weaponNameMap } from "@maps/instances.js";
 import { ItemStatEntity } from "@scripts/v2/db/entitiesV1/ItemStatEntity.js";
 import { GlobalItemStatsEntity } from "@scripts/v2/db/entitiesV2/GlobalItemStatsEntity.js";
+import { getBannerId, normalizeBannerId } from "@utils/bannerUtils.js";
 
 export class ItemStatRecord {
     private readonly _bannerId: string;
@@ -27,7 +28,7 @@ export class ItemStatRecord {
     }
 
     public get bannerId(): string {
-        return this._bannerId;
+        return normalizeBannerId(this._bannerId);
     }
 
     public get itemName(): string {
@@ -48,7 +49,7 @@ export class ItemStatRecord {
 
     public getV2(): GlobalItemStatsEntity {
         return {
-            bannerId: this._bannerId,
+            bannerId: this.bannerId,
             itemId: this.itemId,
             rarity: this._rarity,
             count: this._count,

@@ -7,6 +7,7 @@ import { PityDistributionRecord } from "@scripts/v2/db/records/PityDistributionR
 import { TimelineRecord } from "@scripts/v2/db/records/TimelineRecord.js";
 import { SchemaV1 } from "@scripts/v2/db/schemas/SchemaV1.js";
 import { SchemaV2 } from "@scripts/v2/db/schemas/SchemaV2.js";
+import { getBannerId } from "@utils/bannerUtils.js";
 import { redistributeCounts } from "@utils/collectionUtils.js";
 import { isDateInRange } from "@utils/dateUtils.js";
 
@@ -205,10 +206,3 @@ async function getTimeline(banner: Banner): Promise<{ records: TimelineRecord[];
     };
 }
 
-function getBannerId(banner: Banner) {
-    if (banner.id === "standard") {
-        return "standard_01";
-    }
-
-    return banner.id;
-}

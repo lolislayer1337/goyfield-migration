@@ -1,5 +1,6 @@
 import { TimelineEntity } from "@scripts/v2/db/entitiesV1/TimelineEntity.js";
 import { GlobalBannerTimelineEntity } from "@scripts/v2/db/entitiesV2/GlobalBannerTimelineEntity.js";
+import { normalizeBannerId } from "@utils/bannerUtils.js";
 
 export class TimelineRecord {
     private readonly _bannerId: string;
@@ -13,7 +14,7 @@ export class TimelineRecord {
     }
 
     public get bannerId(): string {
-        return this._bannerId;
+        return normalizeBannerId(this._bannerId);
     }
 
     public get date(): string {
@@ -30,7 +31,7 @@ export class TimelineRecord {
 
     public getV2(): GlobalBannerTimelineEntity {
         return {
-            bannerId: this._bannerId,
+            bannerId: this.bannerId,
             date: this._date,
             totalPullsCount: this._pulls,
             freePullsCount: 0
