@@ -77,9 +77,14 @@ async function getPityDistribution(banner: Banner): Promise<{
     };
 }
 
-async function getItemStats(banner: Banner): Promise<{ records: ItemStatRecord[]; illegalItemCount: number }> {
+async function getItemStats(banner: Banner): Promise<{
+    records: ItemStatRecord[];
+    illegalItemCount6: number;
+    illegalItemCount5: number
+}> {
     const resultStats: ItemStatRecord[] = [];
-    let illegalItemsCount = 0;
+    let illegalItemCount6 = 0;
+    let illegalItemCount5 = 0;
 
     const stats = await schemaV1.getItemStats(banner.id);
 
@@ -91,7 +96,11 @@ async function getItemStats(banner: Banner): Promise<{ records: ItemStatRecord[]
         if (!isValid) {
             console.log(`Invalid item found: ${itemId} ${item.rarity} for ${banner.id}`);
 
-            illegalItemsCount += item.count;
+            if (item.rarity === 6) {
+                illegalItemCount6 += item.count;
+            } else if (item.rarity === 5) {
+                illegalItemCount5 += item.count;
+            }
 
             continue;
         }
@@ -101,7 +110,8 @@ async function getItemStats(banner: Banner): Promise<{ records: ItemStatRecord[]
 
     return {
         records: resultStats,
-        illegalItemCount: illegalItemsCount
+        illegalItemCount6,
+        illegalItemCount5
     };
 }
 
