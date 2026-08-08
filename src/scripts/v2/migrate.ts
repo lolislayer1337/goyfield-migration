@@ -79,6 +79,7 @@ async function getPityDistribution(banner: Banner): Promise<{
     records: PityDistributionRecord[];
     illegalPullsCount: number
 }> {
+    const bannerId = getBannerId(banner);
     const bannerTypeInfo = bannerTypeMap.get(banner.type)!;
     const minPulls = 0;
     const maxPulls = bannerTypeInfo.pullsLimit;
@@ -89,7 +90,7 @@ async function getPityDistribution(banner: Banner): Promise<{
     const resultDistribution: PityDistributionRecord[] = [];
     let illegalPullsCount = 0;
 
-    const pityDistribution = await schemaV1.getPityDistribution(banner.id);
+    const pityDistribution = await schemaV1.getPityDistribution(bannerId);
 
     for (const item of pityDistribution) {
         const pity = item.pity;
@@ -131,12 +132,14 @@ async function getItemStats(banner: Banner): Promise<{
     illegalItemCount6: number;
     illegalItemCount5: number
 }> {
+    const bannerId = getBannerId(banner);
+
     const resultStats: ItemStatRecord[] = [];
     let totalIllegalItemCount = 0;
     let illegalItemCount6 = 0;
     let illegalItemCount5 = 0;
 
-    const stats = await schemaV1.getItemStats(banner.id);
+    const stats = await schemaV1.getItemStats(bannerId);
 
     for (const item of stats) {
         const itemId = item.itemId;
@@ -144,7 +147,7 @@ async function getItemStats(banner: Banner): Promise<{
         const isValid = banner.isAllowed(itemId, item.rarity);
 
         if (!isValid) {
-            console.log(`[GLOBAL] [ItemStats] Invalid item found: ${itemId} ${item.rarity} (${item.count}) for ${banner.id}`);
+            console.log(`[GLOBAL] [ItemStats] Invalid item found: ${itemId} ${item.rarity} (${item.count}) for ${bannerId}`);
 
             totalIllegalItemCount += item.count;
 
@@ -171,20 +174,21 @@ async function getItemStats(banner: Banner): Promise<{
 }
 
 async function getTimeline(banner: Banner): Promise<{ records: TimelineRecord[]; illegalPullsCount: number }> {
+    const bannerId = getBannerId(banner);
     const startTime = banner.getMinStartTime();
     const endTime = banner.getMaxEndTime();
 
     const resultTimeline: TimelineRecord[] = [];
     let illegalPullsCount = 0;
 
-    const timeline = await schemaV1.getTimeline(banner.id);
+    const timeline = await schemaV1.getTimeline(bannerId);
 
     for (const item of timeline) {
         const date = item.getDate();
         const isValid = isDateInRange(date, startTime, endTime);
 
         if (!isValid) {
-            console.log(`[GLOBAL] [Timeline] Invalid date found: ${item.date} (${item.pulls}) for ${banner.id}`);
+            console.log(`[GLOBAL] [Timeline] Invalid date found: ${item.date} (${item.pulls}) for ${bannerId}`);
 
             illegalPullsCount += item.pulls;
 
@@ -199,4 +203,12 @@ async function getTimeline(banner: Banner): Promise<{ records: TimelineRecord[];
         records: resultTimeline,
         illegalPullsCount
     };
+}
+
+function getBannerId(banner: Banner) {
+    if (banner.id === "standard") {
+        return "standard_01";
+    }
+
+    return banner.id;
 }
