@@ -1,4 +1,5 @@
-import { TimelineEntity } from "@scripts/v2/db/entities/TimelineEntity.js";
+import { TimelineEntity } from "@scripts/v2/db/entitiesV1/TimelineEntity.js";
+import { GlobalBannerTimelineEntity } from "@scripts/v2/db/entitiesV2/GlobalBannerTimelineEntity.js";
 
 export class TimelineRecord {
     private readonly _bannerId: string;
@@ -25,5 +26,14 @@ export class TimelineRecord {
 
     public getDate(): Date {
         return new Date(this._date + "T00:00:00Z");
+    }
+
+    public getV2(): GlobalBannerTimelineEntity {
+        return {
+            bannerId: this._bannerId,
+            date: this._date,
+            totalPullsCount: this._pulls,
+            freePullsCount: 0
+        }
     }
 }

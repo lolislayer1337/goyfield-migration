@@ -1,4 +1,5 @@
-import { PityDistributionEntity } from "@scripts/v2/db/entities/PityDistributionEntity.js";
+import { PityDistributionEntity } from "@scripts/v2/db/entitiesV1/PityDistributionEntity.js";
+import { GlobalPityDistributionEntity } from "@scripts/v2/db/entitiesV2/GlobalPityDistributionEntity.js";
 
 export class PityDistributionRecord {
     private readonly _bannerId: string;
@@ -27,5 +28,14 @@ export class PityDistributionRecord {
 
     public get count(): number {
         return this._count;
+    }
+
+    public getV2(): GlobalPityDistributionEntity {
+        return {
+            bannerId: this._bannerId,
+            rarity: this._rarity,
+            pity: this._pity,
+            count: this._count
+        };
     }
 }
