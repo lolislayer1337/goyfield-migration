@@ -13,7 +13,7 @@ export function redistributeCounts<T extends object>(list: T[], targetSum: numbe
         return [];
     }
 
-    const sum = list.reduce((sum, item) => sum += item[countField] as number, 0);
+    const sum = list.reduce((sum, item) => sum + (item[countField] as number), 0);
 
     const newValues = list.map(item => {
         const count = item[countField] as number;
@@ -25,7 +25,7 @@ export function redistributeCounts<T extends object>(list: T[], targetSum: numbe
         }
     });
 
-    const newSum = newValues.reduce((sum, item) => sum += item.value, 0);
+    const newSum = newValues.reduce((sum, item) => sum + item.value, 0);
     let sumRemainder = targetSum - newSum;
 
     newValues.sort((a, b) => b.remainder - a.remainder);

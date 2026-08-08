@@ -28,9 +28,29 @@ export class SchemaV2 {
     }
 
     public async createManyItemStats(entities: GlobalItemStatsEntity[]) {
-        await this._prisma.globalItemStats.createMany({
-            data: entities
-        });
+        // await this._prisma.globalItemStats.createMany({
+        //     data: entities
+        // });
+
+        for (const item of entities) {
+            await this._prisma.globalItemStats.upsert({
+                where: {
+                    bannerId_itemId: {
+                        bannerId: item.bannerId,
+                        itemId: item.itemId
+                    }
+                },
+                update: {
+                    count: {increment: item.count}
+                },
+                create: {
+                    bannerId: item.bannerId,
+                    itemId: item.itemId,
+                    rarity: item.rarity,
+                    count: item.count
+                }
+            });
+        }
     }
 
     public async createManyPityDistributionRecords(records: PityDistributionRecord[]) {

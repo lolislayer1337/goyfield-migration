@@ -5,16 +5,16 @@ export function isDateInRange(date: Date, min: Date | null, max: Date | null): b
 
     if (min
         && (date.getUTCFullYear() < min.getUTCFullYear()
-            || date.getUTCMonth() < min.getUTCMonth()
-            || date.getUTCDate() < min.getUTCDate())
+            || date.getUTCFullYear() === min.getUTCFullYear() && date.getUTCMonth() < min.getUTCMonth()
+            || date.getUTCFullYear() === min.getUTCFullYear() && date.getUTCMonth() === min.getUTCMonth() && date.getUTCDate() < min.getUTCDate())
     ) {
         return false;
     }
 
     if (max
         && (date.getUTCFullYear() > max.getUTCFullYear()
-            || date.getUTCMonth() > max.getUTCMonth()
-            || date.getUTCDate() > max.getUTCDate())
+            || date.getUTCFullYear() === max.getUTCFullYear() && date.getUTCMonth() > max.getUTCMonth()
+            || date.getUTCFullYear() === max.getUTCFullYear() && date.getUTCMonth() === max.getUTCMonth() && date.getUTCDate() > max.getUTCDate())
     ) {
         return false;
     }

@@ -5,7 +5,6 @@
   "main": "src/main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --exec tsx src/main.ts",
     "start": "tsx src/main.ts",
     "prisma:v2:generate": "prisma generate --schema prisma/v2/schema.prisma",
     "prisma:v1:pg:generate": "prisma generate --schema prisma/v1/postgres/schema.prisma",

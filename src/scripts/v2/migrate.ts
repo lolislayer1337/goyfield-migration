@@ -1,12 +1,13 @@
 import { PrismaClient as PrismaClientV1 } from "@generated/prisma-v1/index.js";
 import { PrismaClient as PrismaClientV2 } from "@generated/prisma-v2/index.js";
 import { Banner } from "@maps/banners/Banner.js";
-import { bannerTypeMap } from "@maps/instances.js";
+import { bannerList, bannerTypeMap } from "@maps/instances.js";
 import { ItemStatRecord } from "@scripts/v2/db/records/ItemStatRecord.js";
 import { PityDistributionRecord } from "@scripts/v2/db/records/PityDistributionRecord.js";
 import { TimelineRecord } from "@scripts/v2/db/records/TimelineRecord.js";
 import { SchemaV1 } from "@scripts/v2/db/schemas/SchemaV1.js";
 import { SchemaV2 } from "@scripts/v2/db/schemas/SchemaV2.js";
+import { redistributeCounts } from "@utils/collectionUtils.js";
 import { isDateInRange } from "@utils/dateUtils.js";
 
 const prismaV1 = new PrismaClientV1();
@@ -16,15 +17,62 @@ const schemaV1 = new SchemaV1(prismaV1);
 const schemaV2 = new SchemaV2(prismaV2);
 
 export async function migrate(): Promise<void> {
-
+    for (const banner of bannerList) {
+        await migrateGlobalBanner(banner);
+    }
 }
 
 async function migrateGlobalBanner(banner: Banner): Promise<void> {
-    console.log(`migrate banner: ${banner.name} (${banner.id})`);
+    console.log(`[GLOBAL] migrate banner: ${banner.name} (${banner.id})`);
 
     const timeline = await getTimeline(banner);
     const itemStats = await getItemStats(banner);
     const pityDistribution = await getPityDistribution(banner);
+
+    const itemStatsSum6 = itemStats.records
+        .filter(item => item.rarity === 6)
+        .reduce((sum, item) => sum + item.count, 0);
+    const pityDistributionSum6 = pityDistribution.records
+        .filter(item => item.rarity === 6)
+        .reduce((sum, item) => sum + item.count, 0);
+
+    let itemStats6 = itemStats.records.filter(item => item.rarity === 6).map(item => item.getV2());
+    let itemStats5 = itemStats.records.filter(item => item.rarity === 5).map(item => item.getV2());
+    let itemStats4 = itemStats.records.filter(item => item.rarity === 4).map(item => item.getV2());
+
+    let pityDistribution6 = pityDistribution.records.map(r => r.getV2());
+
+    let targetSum6: number;
+
+    if (itemStatsSum6 === pityDistributionSum6) {
+        targetSum6 = itemStatsSum6;
+    } else if (itemStatsSum6 < pityDistributionSum6) {
+        targetSum6 = itemStatsSum6;
+
+        pityDistribution6 = redistributeCounts(pityDistribution6, targetSum6, "count");
+    } else {
+        targetSum6 = pityDistributionSum6;
+
+        itemStats6 = redistributeCounts(itemStats6, targetSum6, "count");
+    }
+
+    const targetTotalCount = timeline.records.reduce((sum, item) => sum + item.pulls, 0);
+    const targetSum5 = itemStats5.reduce((sum, item) => sum + item.count, 0);
+    const targetSum4 = targetTotalCount - targetSum6 - targetSum5;
+
+    itemStats4 = redistributeCounts(itemStats4, targetSum4, "count");
+
+    const newTimeline = timeline.records.map(r => r.getV2());
+    const newItemStats = [
+        ...itemStats6,
+        ...itemStats5,
+        ...itemStats4
+    ];
+    const newPityDistribution = pityDistribution6;
+
+    await schemaV2.createManyTimeline(newTimeline);
+    await schemaV2.createManyItemStats(newItemStats);
+    await schemaV2.createManyPityDistribution(newPityDistribution);
 }
 
 async function getPityDistribution(banner: Banner): Promise<{
@@ -48,7 +96,7 @@ async function getPityDistribution(banner: Banner): Promise<{
         const rarity = item.rarity;
 
         if (rarity !== 6 && rarity !== 5 && rarity !== 4) {
-            console.log(`Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity}`);
+            console.log(`[GLOBAL] [PityDistribution] Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity} (${item.count})`);
 
             illegalPullsCount += item.count;
 
@@ -61,7 +109,7 @@ async function getPityDistribution(banner: Banner): Promise<{
             : maxPulls4;
 
         if (pity < minPulls || maxPulls !== 0 && pity > maxPulls || softGuarantee !== 0 && pity > softGuarantee) {
-            console.log(`Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity}`);
+            console.log(`[GLOBAL] [PityDistribution] Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity} (${item.count})`);
 
             illegalPullsCount = item.count;
 
@@ -79,10 +127,12 @@ async function getPityDistribution(banner: Banner): Promise<{
 
 async function getItemStats(banner: Banner): Promise<{
     records: ItemStatRecord[];
+    totalIllegalItemCount: number;
     illegalItemCount6: number;
     illegalItemCount5: number
 }> {
     const resultStats: ItemStatRecord[] = [];
+    let totalIllegalItemCount = 0;
     let illegalItemCount6 = 0;
     let illegalItemCount5 = 0;
 
@@ -94,7 +144,9 @@ async function getItemStats(banner: Banner): Promise<{
         const isValid = banner.isAllowed(itemId, item.rarity);
 
         if (!isValid) {
-            console.log(`Invalid item found: ${itemId} ${item.rarity} for ${banner.id}`);
+            console.log(`[GLOBAL] [ItemStats] Invalid item found: ${itemId} ${item.rarity} (${item.count}) for ${banner.id}`);
+
+            totalIllegalItemCount += item.count;
 
             if (item.rarity === 6) {
                 illegalItemCount6 += item.count;
@@ -108,8 +160,11 @@ async function getItemStats(banner: Banner): Promise<{
         resultStats.push(item);
     }
 
+
+
     return {
         records: resultStats,
+        totalIllegalItemCount,
         illegalItemCount6,
         illegalItemCount5
     };
@@ -129,7 +184,7 @@ async function getTimeline(banner: Banner): Promise<{ records: TimelineRecord[];
         const isValid = isDateInRange(date, startTime, endTime);
 
         if (!isValid) {
-            console.log(`Invalid date found: ${item.date} for ${banner.id}`);
+            console.log(`[GLOBAL] [Timeline] Invalid date found: ${item.date} (${item.pulls}) for ${banner.id}`);
 
             illegalPullsCount += item.pulls;
 
