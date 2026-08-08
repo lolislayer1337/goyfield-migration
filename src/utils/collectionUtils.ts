@@ -8,6 +8,22 @@ export function getMap<K ,V>(list: V[], getIdFn: (item: V) => K): Map<K, V> {
     return map;
 }
 
+export function getListMap<K, V>(list: V[], getIdFn: (item: V) => K): Map<K, V[]> {
+    const map: Map<K, V[]> = new Map();
+
+    for (const item of list) {
+        let mapList = map.get(getIdFn(item));
+        if (!mapList) {
+            mapList = []
+            map.set(getIdFn(item), mapList);
+        }
+
+        mapList.push(item);
+    }
+
+    return map;
+}
+
 export function redistributeCounts<T extends object>(list: T[], targetSum: number, countField: keyof T): T[] {
     if (list.length === 0) {
         return [];

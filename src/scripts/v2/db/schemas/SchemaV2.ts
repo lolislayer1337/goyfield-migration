@@ -2,9 +2,11 @@ import { PrismaClient } from "@generated/prisma-v2/index.js";
 import { GlobalBannerTimelineEntity } from "@scripts/v2/db/entitiesV2/GlobalBannerTimelineEntity.js";
 import { GlobalItemStatsEntity } from "@scripts/v2/db/entitiesV2/GlobalItemStatsEntity.js";
 import { GlobalPityDistributionEntity } from "@scripts/v2/db/entitiesV2/GlobalPityDistributionEntity.js";
-import { ItemStatRecord } from "@scripts/v2/db/records/ItemStatRecord.js";
-import { PityDistributionRecord } from "@scripts/v2/db/records/PityDistributionRecord.js";
-import { TimelineRecord } from "@scripts/v2/db/records/TimelineRecord.js";
+import { UserBannerProfileEntity } from "@scripts/v2/db/entitiesV2/UserBannerProfileEntity.js";
+import { UserBannerStatEntity } from "@scripts/v2/db/entitiesV2/UserBannerStatEntity.js";
+import { UserCharBannerPullsEntity } from "@scripts/v2/db/entitiesV2/UserCharBannerPullsEntity.js";
+import { UserCharBannerTypePullsEntity } from "@scripts/v2/db/entitiesV2/UserCharBannerTypePullsEntity.js";
+import { UserWeaponBannerPullsEntity } from "@scripts/v2/db/entitiesV2/UserWeaponBannerPullsEntity.js";
 
 export class SchemaV2 {
     private readonly _prisma: PrismaClient;
@@ -13,25 +15,13 @@ export class SchemaV2 {
         this._prisma = prisma;
     }
 
-    public async createManyTimelineRecords(records: TimelineRecord[]) {
-        return this.createManyTimeline(records.map(r => r.getV2()));
-    }
-
     public async createManyTimeline(entities: GlobalBannerTimelineEntity[]) {
         await this._prisma.globalBannerTimeline.createMany({
             data: entities
         });
     }
 
-    public async createManyItemStatsRecords(records: ItemStatRecord[]) {
-        return this.createManyItemStats(records.map(r => r.getV2()));
-    }
-
     public async createManyItemStats(entities: GlobalItemStatsEntity[]) {
-        // await this._prisma.globalItemStats.createMany({
-        //     data: entities
-        // });
-
         for (const item of entities) {
             await this._prisma.globalItemStats.upsert({
                 where: {
@@ -53,12 +43,38 @@ export class SchemaV2 {
         }
     }
 
-    public async createManyPityDistributionRecords(records: PityDistributionRecord[]) {
-        return this.createManyPityDistribution(records.map(r => r.getV2()));
-    }
-
     public async createManyPityDistribution(entities: GlobalPityDistributionEntity[]) {
         await this._prisma.globalPityDistribution.createMany({
+            data: entities
+        });
+    }
+
+    public async createManyUserBannerProfiles(privateIds: string[]): Promise<UserBannerProfileEntity[]> {
+        return await this._prisma.userBannerProfile.createManyAndReturn({
+            data: privateIds.map(privateId => ({ privateId, version: 1 }))
+        });
+    }
+
+    public async createManyUserBannerStats(entities: UserBannerStatEntity[]): Promise<void> {
+        await this._prisma.userBannerStat.createMany({
+            data: entities
+        });
+    }
+
+    public async createManyUserCharBannerTypePulls(entities: UserCharBannerTypePullsEntity[]) {
+        await this._prisma.userCharBannerTypePulls.createMany({
+            data: entities
+        });
+    }
+
+    public async createManyUserCharBannerPulls(entities: UserCharBannerPullsEntity[]) {
+        await this._prisma.userCharBannerPulls.createMany({
+            data: entities
+        });
+    }
+
+    public async createManyUserWeaponBannerPulls(entities: UserWeaponBannerPullsEntity[]) {
+        await this._prisma.userWeaponBannerPulls.createMany({
             data: entities
         });
     }
