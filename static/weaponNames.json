@@ -1,5 +1,9 @@
 [
   {
+    "id": "wpn_sword_0008",
+    "name": "Contingent Measure"
+  },
+  {
     "id": "wpn_claym_0003",
     "name": "Industry 0.1"
   },
@@ -168,6 +172,10 @@
     "name": "OBJ Razorhorn"
   },
   {
+    "id": "wpn_lance_0014",
+    "name": "Bedazzling Night Debut"
+  },
+  {
     "id": "wpn_lance_0015",
     "name": "Blessing of Lustrous Carmine"
   },
@@ -302,9 +310,5 @@
   {
     "id": "wpn_sword_0026",
     "name": "Farsight"
-  },
-  {
-    "id": "wpn_sword_0008",
-    "name": "Contingent Measure"
   }
 ]
