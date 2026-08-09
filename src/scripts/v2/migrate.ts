@@ -199,17 +199,13 @@ async function migrateGlobalBanner(banner: Banner): Promise<void> {
     }
 
     const targetTotalCount = timeline.records.reduce((sum, item) => sum + item.pulls, 0);
-    const targetSum5 = itemStats5.reduce((sum, item) => sum + item.count, 0);
-    const targetSum4 = targetTotalCount - targetSum6 - targetSum5;
-
-    itemStats4 = redistributeCounts(itemStats4, targetSum4, "count");
 
     const newTimeline = timeline.records.map(r => r.getV2());
-    const newItemStats = [
+    const newItemStats = redistributeCounts([
         ...itemStats6,
         ...itemStats5,
         ...itemStats4
-    ];
+    ], targetTotalCount, "count");
     const newPityDistribution = pityDistribution6;
 
     await schemaV2.createManyTimeline(newTimeline);
@@ -335,6 +331,18 @@ async function getTimeline(banner: Banner): Promise<{ records: TimelineRecord[];
             illegalPullsCount += item.pulls;
 
             continue;
+        }
+
+        const isTenPullOnly = banner.type === "weapon" || banner.type === "new-player"
+
+        if (isTenPullOnly && item.pulls % 10 !== 0) {
+            logger.warn(`[GLOBAL] [Timeline] Invalid pulls count found: ${item.pulls}`);
+
+            const illegalPulls = item.pulls % 10;
+
+            illegalPullsCount += illegalPulls
+
+            item.pulls -= illegalPulls;
         }
 
         resultTimeline.push(item);

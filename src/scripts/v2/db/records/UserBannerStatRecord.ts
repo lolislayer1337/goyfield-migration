@@ -36,16 +36,30 @@ export class UserBannerStatRecord {
             uid,
             entity.bannerId,
             bannerType,
-            entity.totalPulls >= 40 && bannerType === "special" ? entity.totalPulls - 10 : entity.totalPulls,
+            this.getTotalPulls(bannerType, entity.totalPulls),
             entity.total6,
             entity.total5,
             entity.won5050,
             entity.total5050,
             entity.totalPulls >= 40 && bannerType === "special" ? 10 : 0,
             0,
-            0,
+            entity.totalPulls >= 40 && bannerType === "special" ? 1 : 0,
             0
         );
+    }
+
+    private static getTotalPulls(bannerType: string, totalPulls: number): number {
+        let result = totalPulls;
+
+        if (bannerType === "special" && totalPulls >= 40) {
+            result -= 10;
+        }
+
+        if (bannerType.startsWith("weap")) {
+            result -= result % 10;
+        }
+
+        return result;
     }
 
     public get profileId(): bigint {

@@ -5,7 +5,7 @@ import { normalizeBannerId } from "@utils/bannerUtils.js";
 export class TimelineRecord {
     private readonly _bannerId: string;
     private readonly _date: string;
-    private readonly _pulls: number;
+    private _pulls: number;
 
     public constructor(entity: TimelineEntity) {
         this._bannerId = entity.bannerId;
@@ -23,6 +23,10 @@ export class TimelineRecord {
 
     public get pulls(): number {
         return this._pulls;
+    }
+
+    public set pulls(value: number) {
+        this._pulls = value;
     }
 
     public getDate(): Date {
