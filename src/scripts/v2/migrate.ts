@@ -1,3 +1,4 @@
+import { logger } from "@/logger.js";
 import { PrismaClient as PrismaClientV1 } from "@generated/prisma-v1/index.js";
 import { PrismaClient as PrismaClientV2 } from "@generated/prisma-v2/index.js";
 import { Banner } from "@maps/banners/Banner.js";
@@ -34,10 +35,10 @@ export async function migrate(): Promise<void> {
 
 async function migrateUserBannerProfiles(): Promise<void> {
     const usersInfo = await schemaV1.countUsers();
-    console.log(`[USER] Migration for ${usersInfo.count} users (${usersInfo.pages} pages)`);
+    logger.info(`[USER] Migration for ${usersInfo.count} users (${usersInfo.pages} pages)`);
 
     for (let i = 1; i <= usersInfo.pages; i++) {
-        console.log(`[USER] Page ${i} of ${usersInfo.pages}`);
+        logger.info(`[USER] Page ${i} of ${usersInfo.pages}`);
 
         const privateIds = await schemaV1.getUserIds(i);
         const oldStats = await schemaV1.getManyUserBannerStats(privateIds);
@@ -68,7 +69,7 @@ async function migrateUserBannerProfiles(): Promise<void> {
         try {
             await schemaV2.createManyUserBannerStats(stats);
         } catch (e) {
-            console.log(stats.length);
+            logger.error(stats.length);
             throw e;
         }
         await schemaV2.createManyUserCharBannerTypePulls(charTypePulls);
@@ -160,7 +161,7 @@ function getUserBannerStats(profile: UserBannerProfileEntity, oldStats: UserBann
 }
 
 async function migrateGlobalBanner(banner: Banner): Promise<void> {
-    console.log(`[GLOBAL] migrate banner: ${banner.name} (${banner.id})`);
+    logger.info(`[GLOBAL] migrate banner: ${banner.name} (${banner.id})`);
 
     const timeline = await getTimeline(banner);
     const itemStats = await getItemStats(banner);
@@ -191,6 +192,10 @@ async function migrateGlobalBanner(banner: Banner): Promise<void> {
         targetSum6 = pityDistributionSum6;
 
         itemStats6 = redistributeCounts(itemStats6, targetSum6, "count");
+    }
+
+    if (banner.id === "special_1_0_1") {
+        logger.debug(targetSum6);
     }
 
     const targetTotalCount = timeline.records.reduce((sum, item) => sum + item.pulls, 0);
@@ -234,7 +239,7 @@ async function getPityDistribution(banner: Banner): Promise<{
         const rarity = item.rarity;
 
         if (rarity !== 6 && rarity !== 5 && rarity !== 4) {
-            console.log(`[GLOBAL] [PityDistribution] Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity} (${item.count})`);
+            logger.warn(`[GLOBAL] [PityDistribution] Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity} (${item.count})`);
 
             illegalPullsCount += item.count;
 
@@ -247,7 +252,7 @@ async function getPityDistribution(banner: Banner): Promise<{
             : maxPulls4;
 
         if (pity < minPulls || maxPulls !== 0 && pity > maxPulls || softGuarantee !== 0 && pity > softGuarantee) {
-            console.log(`[GLOBAL] [PityDistribution] Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity} (${item.count})`);
+            logger.warn(`[GLOBAL] [PityDistribution] Illegal pull found: ${item.bannerId} ${item.pity} ${item.rarity} (${item.count})`);
 
             illegalPullsCount = item.count;
 
@@ -281,10 +286,10 @@ async function getItemStats(banner: Banner): Promise<{
     for (const item of stats) {
         const itemId = item.itemId;
 
-        const isValid = banner.isAllowed(itemId, item.rarity);
+        const isValid = itemId ? banner.isAllowed(itemId, item.rarity) : false;
 
         if (!isValid) {
-            console.log(`[GLOBAL] [ItemStats] Invalid item found: ${itemId} ${item.rarity} (${item.count}) for ${bannerId}`);
+            logger.warn(`[GLOBAL] [ItemStats] Invalid item found: ${itemId} (${item.itemName}) ${item.rarity} (${item.count}) for ${bannerId}`);
 
             totalIllegalItemCount += item.count;
 
@@ -313,7 +318,7 @@ async function getItemStats(banner: Banner): Promise<{
 async function getTimeline(banner: Banner): Promise<{ records: TimelineRecord[]; illegalPullsCount: number }> {
     const bannerId = getBannerId(banner);
     const startTime = banner.getMinStartTime();
-    const endTime = banner.getMaxEndTime();
+    const endTime = banner.getMaxEndTime() ?? new Date();
 
     const resultTimeline: TimelineRecord[] = [];
     let illegalPullsCount = 0;
@@ -325,7 +330,7 @@ async function getTimeline(banner: Banner): Promise<{ records: TimelineRecord[];
         const isValid = isDateInRange(date, startTime, endTime);
 
         if (!isValid) {
-            console.log(`[GLOBAL] [Timeline] Invalid date found: ${item.date} (${item.pulls}) for ${bannerId}`);
+            logger.warn(`[GLOBAL] [Timeline] Invalid date found: ${item.date} (${item.pulls}) for ${bannerId}`);
 
             illegalPullsCount += item.pulls;
 

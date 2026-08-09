@@ -1,7 +1,8 @@
+import { logger } from "@/logger.js";
 import { charNameMap, weaponNameMap } from "@maps/instances.js";
 import { ItemStatEntity } from "@scripts/v2/db/entitiesV1/ItemStatEntity.js";
 import { GlobalItemStatsEntity } from "@scripts/v2/db/entitiesV2/GlobalItemStatsEntity.js";
-import { getBannerId, normalizeBannerId } from "@utils/bannerUtils.js";
+import { normalizeBannerId } from "@utils/bannerUtils.js";
 
 export class ItemStatRecord {
     private readonly _bannerId: string;
@@ -16,15 +17,15 @@ export class ItemStatRecord {
         this._count = entity.count;
     }
 
-    private static getItemId(itemName: string): string {
-        const itemId = charNameMap.getIdByName(itemName)
+    private static getItemId(itemName: string): string | null {
+        const id = charNameMap.getIdByName(itemName)
             ?? weaponNameMap.getIdByName(itemName);
 
-        if (!itemId) {
-            throw new Error(`Item name not found: ${itemName}`);
+        if (id === null) {
+            logger.warn(`Item name not found: '${itemName}'`);
         }
 
-        return itemId;
+        return id;
     }
 
     public get bannerId(): string {
@@ -35,7 +36,7 @@ export class ItemStatRecord {
         return this._itemName;
     }
 
-    public get itemId(): string {
+    public get itemId(): string | null {
         return ItemStatRecord.getItemId(this._itemName)
     }
 
@@ -50,7 +51,7 @@ export class ItemStatRecord {
     public getV2(): GlobalItemStatsEntity {
         return {
             bannerId: this.bannerId,
-            itemId: this.itemId,
+            itemId: this.itemId!,
             rarity: this._rarity,
             count: this._count,
         };

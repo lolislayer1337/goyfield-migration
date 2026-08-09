@@ -36,8 +36,8 @@ export function redistributeCounts<T extends object>(list: T[], targetSum: numbe
 
         return {
             item,
-            value: Math.floor(count / sum),
-            remainder: count % sum
+            value: Math.floor(count * targetSum / sum),
+            remainder: count * targetSum % sum
         }
     });
 
