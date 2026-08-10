@@ -110,8 +110,7 @@ export class SchemaV2 {
     }
 
     public async createSpecialBannerProfile(): Promise<UserBannerProfileEntity> {
-        const uuid = randomUUID();
-        const id = `special_banner_profile-${uuid}`;
+        const id = "special_banner_profile_stat";
 
         return await this._prisma.userBannerProfile.create({
             data: {
