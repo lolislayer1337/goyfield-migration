@@ -16,7 +16,7 @@ import { UserBannerStatRecord } from "@scripts/v2/db/records/UserBannerStatRecor
 import { SchemaV1 } from "@scripts/v2/db/schemas/SchemaV1.js";
 import { SchemaV2 } from "@scripts/v2/db/schemas/SchemaV2.js";
 import { getBannerId, normalizeBannerId } from "@utils/bannerUtils.js";
-import { getListMap, redistributeCounts } from "@utils/collectionUtils.js";
+import { getListMap, getMap, redistributeCounts } from "@utils/collectionUtils.js";
 import { isDateInRange } from "@utils/dateUtils.js";
 
 const prismaV1 = new PrismaClientV1();
@@ -31,6 +31,94 @@ export async function migrate(): Promise<void> {
     }
 
     await migrateUserBannerProfiles();
+
+    await createSpecialProfile();
+}
+
+async function createSpecialProfile(): Promise<void> {
+    const profile = await schemaV2.createSpecialBannerProfile();
+
+    const diffStatsList: UserBannerStatEntityV2[] = [];
+
+    for (const banner of bannerList) {
+        const diff = await getGlobalBannerStatsDiff(banner);
+
+        diffStatsList.push({
+            profileId: profile.profileId,
+            bannerId: diff.bannerId,
+            bannerType: banner.dbType,
+            unfreePulls: diff.dTotalPulls,
+            total6: diff.dTotal6,
+            total5: diff.dTotal5,
+            total5050: diff.dTotal5050,
+            won5050: diff.dWon5050,
+            freePulls: 0,
+            free6: 0,
+            free5: 0,
+            freeWin5050: 0
+        });
+    }
+
+    await schemaV2.createManyUserBannerStats(diffStatsList);
+}
+
+async function getGlobalBannerStatsDiff(banner: Banner): Promise<{
+    bannerId: string;
+    dTotalPulls: number;
+    dTotal6: number;
+    dTotal5: number;
+    dTotal5050: number;
+    dWon5050: number
+}> {
+    logger.info(`[GLOBAL SYNC] sync banner ${banner.id} (${banner.name})`);
+
+    const currentGlobalStats = await schemaV2.getGlobalBannerStats(banner.id);
+
+    const timelineStats = await schemaV2.getTimelineStat(banner.id);
+    const itemStats = await schemaV2.getBannerItemStat(banner.id);
+
+    const currentTotalPulls = currentGlobalStats.totalPulls;
+    const currentTotal6 = currentGlobalStats.total6;
+    const currentTotal5 = currentGlobalStats.total5;
+    const currentTotal5050 = currentGlobalStats.total5050;
+    const currentWon5050 = currentGlobalStats.won5050;
+    const current5050Distribution = [
+        {
+            id: "guaranteed",
+            count: currentGlobalStats.total6 - currentGlobalStats.total5050
+        },
+        {
+            id: "won5050",
+            count: currentGlobalStats.won5050
+        },
+        {
+            id: "lost5050",
+            count: currentGlobalStats.total5050 - currentGlobalStats.won5050
+        }
+    ];
+
+    const targetTotalPulls = timelineStats.totalPulls;
+    const targetTotal6 = itemStats.total6;
+    const targetTotal5 = itemStats.total5;
+    const target5050Distribution = redistributeCounts(current5050Distribution, targetTotal6, "count");
+    const target5050DistributionMap = getMap(target5050Distribution, item => item.id);
+    const targetTotal5050 = (target5050DistributionMap.get("won5050")?.count ?? 0) + (target5050DistributionMap.get("lost5050")?.count ?? 0);
+    const targetWon5050 = target5050DistributionMap.get("won5050")?.count ?? 0;
+
+    const dTotalPulls = targetTotalPulls - currentTotalPulls;
+    const dTotal6 = targetTotal6 - currentTotal6;
+    const dTotal5 = targetTotal5 - currentTotal5;
+    const dTotal5050 = (isNaN(targetTotal5050) ? 0 : targetTotal5050) - currentTotal5050;
+    const dWon5050 = (isNaN(targetWon5050) ? 0 : targetWon5050) - currentWon5050;
+
+    return {
+        bannerId: banner.id,
+        dTotalPulls,
+        dTotal6,
+        dTotal5,
+        dTotal5050,
+        dWon5050
+    };
 }
 
 async function migrateUserBannerProfiles(): Promise<void> {
@@ -106,6 +194,10 @@ function getUserBannerStats(profile: UserBannerProfileEntity, oldStats: UserBann
         const isWeapon = banner.type === "weapon";
 
         const record = UserBannerStatRecord.createFromV1(profile.profileId, banner.dbType, entity);
+
+        if (record.unfreePulls === 0) {
+            continue;
+        }
 
         stats.push(record.getV2());
 
